@@ -8,7 +8,7 @@
   "licenseApproved": true,
   "artifactHashes": {
     ".github/workflows/build.yml": "e9a640e8c1c3c2d6300819b356b6af911131d3185e52a40ffc2b7548cccacc36",
-    ".github/workflows/consumer-smoke.yml": "54e870e83e4a967b6800ac680d8137e995101da80015ca477e75a5b9f450e988",
+    ".github/workflows/consumer-smoke.yml": "976acd989b43c85179ad241df39d7a560f31e7cb291bce38bedc016e29aa948d",
     ".gitignore": "2ed48f69360e0fa19539a6691f5001ae0e9de2680508c8c8c2e5b30aac396c8e",
     ".interfacedelta/passport.json": "d36281c8b9434f3f9b185622facc246bf24e3c2c147db9e73e281a7d18bf73f0",
     "LICENSE": "940c3aa5f73bdc0d50938e8c1e09d95c18c229c2dd8b281498b9e091113d0cb1",
