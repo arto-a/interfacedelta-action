@@ -1,0 +1,27 @@
+name: InterfaceDelta consumer smoke
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Run local Action bundle
+        id: interfacedelta
+        uses: ./
+        with:
+          url: https://example.com
+          baseline: .interfacedelta/passport.json
+          fail-on: breaking
+      - name: Verify outputs
+        env:
+          POLICY_RESULT: ${{ steps.interfacedelta.outputs.policy-result }}
+          COMPARISON_STATE: ${{ steps.interfacedelta.outputs.comparison-state }}
+        run: |
+          test "$POLICY_RESULT" = passed
+          test "$COMPARISON_STATE" = unchanged

@@ -1,0 +1,41 @@
+name: InterfaceDelta Compatibility Check
+description: Run a passive agent-interface compatibility check against a committed baseline.
+author: InterfaceDelta
+branding:
+  icon: activity
+  color: blue
+inputs:
+  url:
+    description: Public HTTPS service URL to inspect.
+    required: true
+  mcp-endpoint:
+    description: Optional explicit public HTTPS MCP endpoint.
+    required: false
+  baseline:
+    description: Local baseline artifact path.
+    required: false
+    default: .interfacedelta/passport.json
+  fail-on:
+    description: Comma-separated classifications that fail policy (breaking or breaking,indeterminate).
+    required: false
+    default: breaking
+outputs:
+  comparison-state:
+    description: Deterministic comparison state.
+  highest-classification:
+    description: Highest deterministic classification.
+  breaking-count:
+    description: Breaking change count.
+  non-breaking-count:
+    description: Non-breaking change count.
+  indeterminate-count:
+    description: Indeterminate change count.
+  informational-count:
+    description: Informational change count.
+  current-fingerprint:
+    description: Current canonical Passport fingerprint.
+  policy-result:
+    description: ci-policy-v1 result (passed or failed).
+runs:
+  using: node24
+  main: dist/index.js
