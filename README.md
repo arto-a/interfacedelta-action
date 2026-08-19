@@ -15,8 +15,8 @@ jobs:
   compatibility:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@<FULL_COMMIT_SHA>
-      - uses: arto-a/interfacedelta-action@<INTERFACEDELTA_RELEASE_COMMIT_SHA>
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: arto-a/interfacedelta-action@140bc50b38e3005664a885f5c2e1e856fbe87bb9 # v0.1.0
         with:
           url: https://service.example
           baseline: .interfacedelta/passport.json
