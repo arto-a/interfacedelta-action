@@ -1,6 +1,7 @@
 name: Verify Action bundle
 
 on:
+  workflow_dispatch:
   pull_request:
   push:
     branches: [main]
@@ -24,4 +25,3 @@ jobs:
           cp dist/index.js /tmp/interfacedelta-action-index.js
           npm run build
           cmp /tmp/interfacedelta-action-index.js dist/index.js
-
