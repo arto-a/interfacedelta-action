@@ -17,11 +17,11 @@ jobs:
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run typecheck
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
       - name: Verify committed bundle
         run: |
           cp dist/index.js /tmp/interfacedelta-action-index.js
-          npm run build
+          pnpm run build
           cmp /tmp/interfacedelta-action-index.js dist/index.js

@@ -1,30 +1,163 @@
 {
   "product": "InterfaceDelta GitHub Action",
-  "releaseVersion": "0.1.0",
+  "releaseVersion": "0.2.0",
   "sourceProject": "InterfaceDelta canonical engineering source",
-  "sourceCommit": "93a56e000a617109a99244635b7744ff8adf1d6c",
-  "generatedAt": "2026-08-19T20:11:16+00:00",
+  "sourceCommit": "8c09d30c48c0f5bce60db02eb39f992009c07725",
+  "generatedAt": "2026-10-26T22:42:33+02:00",
   "license": "Apache-2.0",
   "licenseApproved": true,
+  "thirdPartyPackages": [
+    {
+      "name": "@actions/core",
+      "version": "3.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "@actions/exec",
+      "version": "3.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "@actions/http-client",
+      "version": "4.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "@actions/io",
+      "version": "3.0.2",
+      "license": "MIT"
+    },
+    {
+      "name": "@digitalbazaar/http-client",
+      "version": "4.4.0",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "ajv",
+      "version": "8.17.1",
+      "license": "MIT"
+    },
+    {
+      "name": "ajv-formats",
+      "version": "3.0.1",
+      "license": "MIT"
+    },
+    {
+      "name": "canonicalize",
+      "version": "2.1.0",
+      "license": "Apache-2.0"
+    },
+    {
+      "name": "dom-serializer",
+      "version": "3.1.1",
+      "license": "MIT"
+    },
+    {
+      "name": "domelementtype",
+      "version": "3.0.0",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "domhandler",
+      "version": "6.0.1",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "domutils",
+      "version": "4.0.2",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "entities",
+      "version": "8.0.0",
+      "license": "BSD-2-Clause"
+    },
+    {
+      "name": "fast-deep-equal",
+      "version": "3.1.3",
+      "license": "MIT"
+    },
+    {
+      "name": "fast-uri",
+      "version": "3.1.5",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "htmlparser2",
+      "version": "12.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "ipaddr.js",
+      "version": "2.2.0",
+      "license": "MIT"
+    },
+    {
+      "name": "json-schema-traverse",
+      "version": "1.0.0",
+      "license": "MIT"
+    },
+    {
+      "name": "jsonld",
+      "version": "9.0.0",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "ky",
+      "version": "1.14.3",
+      "license": "MIT"
+    },
+    {
+      "name": "lru-cache",
+      "version": "6.0.0",
+      "license": "ISC"
+    },
+    {
+      "name": "rdf-canonize",
+      "version": "5.0.0",
+      "license": "BSD-3-Clause"
+    },
+    {
+      "name": "tunnel",
+      "version": "0.0.6",
+      "license": "MIT"
+    },
+    {
+      "name": "undici",
+      "version": "6.28.0",
+      "license": "MIT"
+    },
+    {
+      "name": "yallist",
+      "version": "4.0.0",
+      "license": "ISC"
+    },
+    {
+      "name": "yaml",
+      "version": "2.8.1",
+      "license": "ISC"
+    },
+    {
+      "name": "zod",
+      "version": "3.25.76",
+      "license": "MIT"
+    }
+  ],
   "artifactHashes": {
-    ".github/workflows/build.yml": "e9a640e8c1c3c2d6300819b356b6af911131d3185e52a40ffc2b7548cccacc36",
-    ".github/workflows/consumer-smoke.yml": "976acd989b43c85179ad241df39d7a560f31e7cb291bce38bedc016e29aa948d",
-    ".gitignore": "2ed48f69360e0fa19539a6691f5001ae0e9de2680508c8c8c2e5b30aac396c8e",
-    ".interfacedelta/passport.json": "d36281c8b9434f3f9b185622facc246bf24e3c2c147db9e73e281a7d18bf73f0",
-    "LICENSE": "940c3aa5f73bdc0d50938e8c1e09d95c18c229c2dd8b281498b9e091113d0cb1",
-    "NOTICE": "a793456a4ab2c01ce22faa73e91a30850bb3e2d4cb6d0575ad994fd8775d2bb0",
+    "LICENSE": "24f92ebec47d826e9b1578391220339855a460ce44c056506adb561a1db4a0f8",
+    "NOTICE": "0d1107fb2270b0e2021146d59b6a7c0f0c33a29128f3624341d84118edb55262",
     "PUBLIC_BRANDING_AUDIT.md": "938440375daac566fefa7efda146826b4ef1e15d99343e4a74b8e1f34f70c4fe",
-    "PUBLIC_SOURCE_BOUNDARY.md": "42f34ad66f7a6bce2f72832c70304ec65a8bcaa3939a7c575aef46c97614bb5f",
-    "README.md": "82e85852abc63702231af6f53ac44a196c411adc86e16344f3c4fe9d27e9cb7c",
-    "THIRD_PARTY_NOTICES.md": "43c71853b9146ebd52b6c05fdad2b58d6bbe81725d7f61471661963cecf89ae7",
-    "action.yml": "8c02340a891313de13a89dec2aa2a16eeddf666b02d5c09954315a33eafc5f3c",
-    "dist/index.js": "4a9e05ff755324e8c13df7b7c8bbb2d39edaf33cbc003397f8810cbfdfdc3ec5",
+    "PUBLIC_SOURCE_BOUNDARY.md": "a3c4cb206ad4b2d84ce5ca39324b3c1ad4090d079b3fabede4e4dd6903f4f9ac",
+    "README.md": "f23981cd180b94bc75ba6bf8fd562f4896265dfa16537287365c82828640bf75",
+    "THIRD_PARTY_NOTICES.md": "b7704c1720ef553b7f1bb057e889f70ec3cd595c3b8d65fdc0558e56e90558fb",
+    "action.yml": "b1963a3a4cc08c57dc9b6d3b51252c4279fd190ec13867402387c208df928264",
+    "dist/index.js": "f91286be1fe964f2b06e0e1dab7fa47ee50b9cbfdcbf947143c7951568b9f870",
     "dist/package.json": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a",
-    "package-lock.json": "fd92c50afd0a9ab3030969558f0d156bd529ef56bda0c8a509000d49dafd39fb",
-    "package.json": "de70e92a91627ef1117474af218ed04d77b7431dd8325498282090c556aea85a",
-    "src/action.ts": "3ea58d30910a66c30fad804c3f12037bbb3528c36ff6293c91d6d14b916391b1",
-    "src/main.ts": "cb20ef3acf86993487220a1dfd34b97f0cd9fba3312c6c3a4ae178db9588b482",
-    "tsconfig.base.json": "ad1ad3d535fe7132e80aa6bba944bf942b87c0151e6832c77adb15edf1675fb1",
+    "package.json": "1eb3c37b0bf9d2d0812c2d4ac1878dab83c7793a8f10340526d5f73d99b0328f",
+    "scripts/smoke.mjs": "bccb6c92e980b8afca573aef592ce9ac77e0fe7d04226217304a371e24d6c727",
+    "src/action.ts": "76f255d32d1b75979775508ad1f58b946a05952269f84749f2eab9c048711d96",
+    "src/main.ts": "c25458fd7ced520df91577f0aa6425e6340075390b1a786c0ce431c11870d4b5",
+    "tsconfig.base.json": "0af1c867a31ef39589b31d1ff757e023275be99a310c89c3219626849c967872",
     "tsconfig.json": "9747eddcae391a1ca41a63857fac753287ea22f808498e810b0dbad9c4f9b144"
   }
 }

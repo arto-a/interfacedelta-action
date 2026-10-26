@@ -1,29 +1,43 @@
 name: InterfaceDelta Compatibility Check
-description: Run a passive agent-interface compatibility check against a committed baseline.
+description: Fail a build when an agent service you depend on makes a breaking interface change.
 author: InterfaceDelta
 branding:
   icon: activity
   color: blue
 inputs:
+  dependencies:
+    description: Dependencies file listing every service to check. Used when url is empty (default .interfacedelta/dependencies.json).
+    required: false
   url:
-    description: Public HTTPS service URL to inspect.
-    required: true
+    description: Check one public HTTPS service URL instead of a dependencies file.
+    required: false
   mcp-endpoint:
-    description: Optional explicit public HTTPS MCP endpoint.
+    description: Optional explicit public HTTPS MCP endpoint (with url).
     required: false
   baseline:
-    description: Local baseline artifact path.
+    description: Baseline artifact path (with url).
     required: false
     default: .interfacedelta/passport.json
-  fail-on:
-    description: Comma-separated classifications that fail policy (breaking or breaking,indeterminate).
+  tokens:
+    description: Bearer tokens for signed-in MCP servers, one per line as <https-origin>=INTERFACEDELTA_TOKEN_<NAME>. Set each variable from a secret in the step's env. A token goes only to explicit MCP endpoints on its origin; repository files cannot add tokens.
     required: false
-    default: breaking
+  fail-on:
+    description: Comma-separated selectors that fail policy - breaking (default), non_breaking, indeterminate, informational, metadata.
+    required: false
+  on-error:
+    description: fail (default) or warn. With warn, a dependency that cannot be reached is reported but does not fail the run.
+    required: false
+  json-output:
+    description: Optional path for the interfacedelta-check-set-v1 JSON result.
+    required: false
+  sarif-output:
+    description: Optional path for a SARIF 2.1.0 file to upload to code scanning.
+    required: false
 outputs:
   comparison-state:
-    description: Deterministic comparison state.
+    description: changed, unchanged, or error when nothing could be checked.
   highest-classification:
-    description: Highest deterministic classification.
+    description: Highest deterministic classification across checked dependencies.
   breaking-count:
     description: Breaking change count.
   non-breaking-count:
@@ -33,9 +47,27 @@ outputs:
   informational-count:
     description: Informational change count.
   current-fingerprint:
-    description: Current canonical Passport fingerprint.
+    description: Current canonical Passport fingerprint (single url only).
   policy-result:
-    description: ci-policy-v1 result (passed or failed).
+    description: ci-policy-v2 result (passed, failed or error).
+  error-kind:
+    description: The most serious error kind - none, configuration, credentials, internal or inspection.
+  dependencies-checked:
+    description: Dependencies checked successfully.
+  dependencies-failed:
+    description: Dependencies that failed policy.
+  dependencies-errored:
+    description: Dependencies that could not be checked.
+  dependencies-skipped:
+    description: Dependencies skipped because a fork pull request has no secrets.
+  blocked-count:
+    description: Changes a decision blocks (rule or fail-on policy).
+  warned-count:
+    description: Changes a decision warns about.
+  accepted-count:
+    description: Changes allowed by an unexpired acceptance in the dependencies file.
+  owners:
+    description: Comma-separated owners of blocked changes, for review requests.
 runs:
   using: node24
   main: dist/index.js

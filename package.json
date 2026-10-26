@@ -1,22 +1,55 @@
 {
   "name": "interfacedelta-action",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "InterfaceDelta Compatibility Check GitHub Action",
   "type": "module",
+  "packageManager": "pnpm@10.33.4",
   "scripts": {
     "build": "ncc build src/main.ts -o dist --minify",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@actions/core": "3.0.1",
-    "interfacedelta": "0.1.0"
+    "interfacedelta": "0.2.0"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",
     "typescript": "^5.8.3",
     "vitest": "^3.1.4",
-    "@vercel/ncc": "0.38.4"
+    "@vercel/ncc": "^0.38.4"
   },
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "pnpm": {
+    "overrides": {
+      "ipaddr.js": "2.2.0",
+      "ajv": "8.17.1",
+      "fast-deep-equal": "3.1.3",
+      "json-schema-traverse": "1.0.0",
+      "fast-uri": "3.1.5",
+      "ajv-formats": "3.0.1",
+      "yaml": "2.8.1",
+      "zod": "3.25.76",
+      "entities": "8.0.0",
+      "htmlparser2": "12.0.0",
+      "domelementtype": "3.0.0",
+      "domhandler": "6.0.1",
+      "domutils": "4.0.2",
+      "dom-serializer": "3.1.1",
+      "rdf-canonize": "5.0.0",
+      "jsonld": "9.0.0",
+      "undici": "6.28.0",
+      "ky": "1.14.3",
+      "@digitalbazaar/http-client": "4.4.0",
+      "yallist": "4.0.0",
+      "lru-cache": "6.0.0",
+      "canonicalize": "2.1.0",
+      "@actions/core": "3.0.1",
+      "@actions/http-client": "4.0.1",
+      "tunnel": "0.0.6",
+      "@actions/io": "3.0.2",
+      "@actions/exec": "3.0.0"
+    }
+  }
 }

@@ -7,6 +7,7 @@ await runAction({
   warning: (message) => core.warning(message),
   error: (message) => core.error(message),
   setFailed: (message) => core.setFailed(message),
+  setSecret: (value) => core.setSecret(value),
   writeSummary: async (markdown) => {
     await core.summary.addRaw(markdown).write();
   },

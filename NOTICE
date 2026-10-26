@@ -1,6 +1,7 @@
 InterfaceDelta
-Copyright 2026 arto-a
+Copyright 2026 InterfaceDelta, Inc.
 
-This product includes protocol schema artifacts from the ARD, A2A, and
-experimental MCP Server Card projects. Exact provenance and applicable
-third-party license information are recorded in THIRD_PARTY_NOTICES.md.
+This product includes protocol schema artifacts from the ARD, A2A,
+experimental MCP Server Card and OpenAPI Specification projects. Exact
+provenance and applicable third-party license information are recorded in
+THIRD_PARTY_NOTICES.md.
