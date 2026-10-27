@@ -41,8 +41,8 @@ importers:
         specifier: 3.0.1
         version: 3.0.1
       interfacedelta:
-        specifier: 0.2.0
-        version: 0.2.0
+        specifier: 0.2.1
+        version: 0.2.1
     devDependencies:
       '@types/node':
         specifier: ^22.15.0
@@ -478,8 +478,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  interfacedelta@0.2.0:
-    resolution: {integrity: sha512-T+9WfCjAoOhsb63dStfe8oQ2+kNNWJ1XH2+HqUqRioksww4ibH31h6U3YyVQ5FaymGAZ+dp6mF6Lc8xmVrsJDQ==}
+  interfacedelta@0.2.1:
+    resolution: {integrity: sha512-r6+O2oXGr0bq0Kn0W4diT2r5jnQewhAbdNxNhZFWyje4SeN8qmehWfX2pd4wnXguhyeG1SK/1W0lLgeHD18wvA==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -952,7 +952,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  interfacedelta@0.2.0: {}
+  interfacedelta@0.2.1: {}
 
   js-tokens@9.0.1: {}
 
