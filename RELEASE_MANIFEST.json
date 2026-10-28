@@ -1,9 +1,9 @@
 {
   "product": "InterfaceDelta GitHub Action",
-  "releaseVersion": "0.2.1",
+  "releaseVersion": "0.3.0",
   "sourceProject": "InterfaceDelta canonical engineering source",
-  "sourceCommit": "b9e0b90bf5407074d81398fece0c4e17eb8f0cf6",
-  "generatedAt": "2026-10-27T18:38:56+02:00",
+  "sourceCommit": "bd4498b19ecb3a8b6201f8ba4693ba6f4886a937",
+  "generatedAt": "2026-10-28T23:17:05+02:00",
   "license": "Apache-2.0",
   "licenseApproved": true,
   "thirdPartyPackages": [
@@ -141,21 +141,27 @@
       "name": "zod",
       "version": "3.25.76",
       "license": "MIT"
+    },
+    {
+      "name": "zod",
+      "version": "4.3.6",
+      "license": "MIT"
     }
   ],
   "artifactHashes": {
     "LICENSE": "24f92ebec47d826e9b1578391220339855a460ce44c056506adb561a1db4a0f8",
     "NOTICE": "0d1107fb2270b0e2021146d59b6a7c0f0c33a29128f3624341d84118edb55262",
     "PUBLIC_BRANDING_AUDIT.md": "938440375daac566fefa7efda146826b4ef1e15d99343e4a74b8e1f34f70c4fe",
-    "PUBLIC_SOURCE_BOUNDARY.md": "249ce64ad0c9f4b0e0bd38e6e4a9a6c0ccb1dfcbf2ae2b60f5adf80bcd61d8c3",
-    "README.md": "d29bfcb38f885dd9faca3304a99b032eb3841db07c66c75ad7bf7998e5056cb5",
-    "THIRD_PARTY_NOTICES.md": "d12f3d5eb107c1e8e9f75d848fedda7efb251869b3f5a6c2648b0869552e05d5",
-    "action.yml": "b1963a3a4cc08c57dc9b6d3b51252c4279fd190ec13867402387c208df928264",
-    "dist/index.js": "ec4d56a6162ed39e0fc1719a4351cc545e41980a4f4b34fabfefb34c67c11e35",
+    "PUBLIC_SOURCE_BOUNDARY.md": "f6f72a56424781f5041fe4b0c58ba8fb1b17033bc7680bb476bf6fb4dcc4a6e3",
+    "README.md": "b5cfa0ff3b1189b40285c1e1fcf8f470e930a68ccddb90271ed2350c118ff039",
+    "THIRD_PARTY_NOTICES.md": "2f1740266fa9666c2e9a8316b393a8e0f6c9527c8833b5300fa261a118086ee8",
+    "action.yml": "b06c53c4904c319a0e7b114798ae125b345259133593236d79d792506d940746",
+    "dist/index.js": "30b425ae444e238b271443583d95779b87f55d31dcd03563adfe5c3263a6cf34",
     "dist/package.json": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a",
-    "package.json": "deca760782141862c110d7bf9a937213f9ac5d6c9390b6cad78a4814acf16f1e",
+    "package.json": "2dba7d6b0994c342bfa1e2aabd8276ba4565c4e44222d74b0af02ca56f871dd3",
     "scripts/smoke.mjs": "bccb6c92e980b8afca573aef592ce9ac77e0fe7d04226217304a371e24d6c727",
-    "src/action.ts": "76f255d32d1b75979775508ad1f58b946a05952269f84749f2eab9c048711d96",
+    "src/action.ts": "ec1475714ca5b846c698f5f628a9102fc0a0e38e13433848cade43566f282e85",
+    "src/issues.ts": "757dc3b6955492b804b78910b430bbb014e77793df683f7d93ddaec0a6e524cf",
     "src/main.ts": "c25458fd7ced520df91577f0aa6425e6340075390b1a786c0ce431c11870d4b5",
     "tsconfig.base.json": "0af1c867a31ef39589b31d1ff757e023275be99a310c89c3219626849c967872",
     "tsconfig.json": "9747eddcae391a1ca41a63857fac753287ea22f808498e810b0dbad9c4f9b144"

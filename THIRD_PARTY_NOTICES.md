@@ -1,6 +1,6 @@
 # Third-party notices
 
-InterfaceDelta GitHub Action 0.2.1 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
+InterfaceDelta GitHub Action 0.3.0 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
 
 | Package | Version | License |
 | --- | --- | --- |
@@ -31,6 +31,7 @@ InterfaceDelta GitHub Action 0.2.1 bundles these third-party packages and the pr
 | yallist | 4.0.0 | ISC |
 | yaml | 2.8.1 | ISC |
 | zod | 3.25.76 | MIT |
+| zod | 4.3.6 | MIT |
 
 ## Vendored protocol schema artifacts
 
@@ -814,6 +815,32 @@ THIS SOFTWARE.
 ```
 
 ## zod@3.25.76 (MIT)
+
+```text
+MIT License
+
+Copyright (c) 2025 Colin McDonnell
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
+
+## zod@4.3.6 (MIT)
 
 ```text
 MIT License

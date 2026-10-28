@@ -19,8 +19,12 @@ import {
   parseOnError,
   readJsonFile,
   sanitizeGithub,
-  sanitizeTerminal,
   summarizeOutcomes,
+  DEFAULT_API_URL,
+  defaultGit,
+  formatWatch,
+  runWatch,
+  type WatchEnvironment,
   toSarif,
   writeAtomic,
   type CheckResult,
@@ -31,16 +35,8 @@ import {
   type SarifEntry,
   type TokenBinding,
 } from 'interfacedelta';
+import { markdown, openDecisionIssues } from './issues';
 
-// Remote-derived text in the summary must not create links, emphasis, math or
-// tables. Escaping ':' and '@' also breaks GFM autolinks (bare URLs, emails,
-// mentions). Angle brackets become entities last, so they are not re-escaped.
-const markdown = (value: unknown, maxLength?: number) =>
-  sanitizeTerminal(value, maxLength)
-    .replace(/[\\`*_[\]()#|~!:@&$]/g, '\\$&')
-    .replace(/\b(www)\./gi, '$1\\.')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
 type Change = CheckResult['comparison']['changes'][number];
 const detailSuffix = (item: Change, result?: CheckResult) => {
   const detail = changeExplanation(item, result);
@@ -278,14 +274,20 @@ function maskCredentials(io: ActionIo, bindings: readonly TokenBinding[]) {
   }
 }
 
-export async function runAction(
-  rawIo: ActionIo,
-  dependencies: {
-    inspector?: Inspector;
-    readBaseline?: (path: string) => Promise<unknown>;
-  } = {},
-): Promise<void> {
-  const io = redacting(rawIo);
+export type ActionDependencies = {
+  inspector?: Inspector;
+  readBaseline?: (path: string) => Promise<unknown>;
+  /** watch and issues: network, Git and environment, for tests. */
+  fetch?: typeof fetch;
+  git?: WatchEnvironment['git'];
+  env?: Record<string, string | undefined>;
+};
+
+/** The compatibility check; returns why the run fails, if it does. */
+async function runCheck(
+  io: ActionIo,
+  dependencies: ActionDependencies,
+): Promise<string | undefined> {
   try {
     const url = io.getInput('url').trim();
     const dependenciesPath = io.getInput('dependencies').trim();
@@ -401,28 +403,166 @@ export async function runAction(
       single ? actionSummary(single) : actionSetSummary(set),
     );
     if (set.exitCode === 1)
-      io.setFailed(
-        `InterfaceDelta ${CI_POLICY_VERSION} compatibility gate failed.`,
-      );
-    else if (set.exitCode !== 0) {
+      return `InterfaceDelta ${CI_POLICY_VERSION} compatibility gate failed.`;
+    if (set.exitCode !== 0) {
       const failed = set.dependencies.flatMap((item) =>
         item.status === 'error' ? [item] : [],
       );
-      io.setFailed(
+      return sanitizeGithub(
+        url
+          ? (failed[0]?.error.message ?? 'InterfaceDelta Action failed.')
+          : `InterfaceDelta could not check ${failed.map((item) => item.name).join(', ')}: ${failed[0]?.error.message ?? ''}`,
+      );
+    }
+    return undefined;
+  } catch (error) {
+    return sanitizeGithub(
+      error instanceof Error ? error.message : 'InterfaceDelta Action failed.',
+    );
+  }
+}
+
+const flag = (io: ActionIo, name: string, fallback: boolean) => {
+  const value = io.getInput(name).trim().toLowerCase();
+  if (!value) return fallback;
+  if (value === 'true' || value === 'false') return value === 'true';
+  throw new Error(`Input "${name}" must be true or false.`);
+};
+
+/** An https:// base: the origin plus any path, as GitHub Enterprise's /api/v3. */
+function httpsOrigin(name: string, value: string, keepPath = false) {
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(`Input "${name}" is not a URL.`);
+  }
+  if (url.protocol !== 'https:' || url.username || url.password)
+    throw new Error(`Input "${name}" must be an https:// origin.`);
+  return keepPath
+    ? `${url.origin}${url.pathname.replace(/\/$/, '')}`
+    : url.origin;
+}
+
+/**
+ * watch (Pro and Team): syncs the dependencies file so InterfaceDelta checks
+ * it continuously. issues: opens a GitHub issue for each decision waiting
+ * for this repository and branch. Both run after the check, whatever its
+ * result; the job then fails once with every reason.
+ */
+async function runDelivery(
+  io: ActionIo,
+  dependencies: ActionDependencies,
+  modes: { watch: boolean; issues: boolean },
+) {
+  const env = dependencies.env ?? process.env;
+  if (modes.watch && io.getInput('url').trim())
+    throw new Error(
+      '"watch" syncs a dependencies file; it cannot be used with "url".',
+    );
+  const apiToken = io.getInput('api-token').trim();
+  if (!apiToken)
+    throw new Error(
+      'Set "api-token" from a secret: an InterfaceDelta token bound to this repository and branch.',
+    );
+  io.setSecret(apiToken);
+  const githubToken = io.getInput('github-token').trim();
+  if (githubToken) io.setSecret(githubToken);
+  const apiUrl = httpsOrigin(
+    'api-url',
+    io.getInput('api-url').trim() || DEFAULT_API_URL,
+  );
+  const githubApiUrl = httpsOrigin(
+    'GITHUB_API_URL',
+    env.GITHUB_API_URL?.trim() || 'https://api.github.com',
+    true,
+  );
+  const refInput = io.getInput('ref').trim();
+  if (modes.watch) {
+    const outcome = await runWatch(
+      {
+        dependencies:
+          io.getInput('dependencies').trim() || DEFAULT_DEPENDENCIES_PATH,
+        ...(refInput ? { ref: refInput } : {}),
+        force: false,
+        off: false,
+      },
+      {
+        env: {
+          ...env,
+          INTERFACEDELTA_API_TOKEN: apiToken,
+          INTERFACEDELTA_API_URL: apiUrl,
+          GITHUB_API_URL: githubApiUrl,
+          ...(githubToken ? { GITHUB_TOKEN: githubToken } : {}),
+        },
+        fetch: dependencies.fetch ?? fetch,
+        git: dependencies.git ?? defaultGit,
+      },
+    );
+    io.setOutput('watch-status', outcome.status);
+    await io.writeSummary(
+      `\n### InterfaceDelta watch\n\n${markdown(formatWatch(outcome), 500)}\n`,
+    );
+  }
+  if (modes.issues) {
+    const repository = env.GITHUB_REPOSITORY?.trim();
+    const ref =
+      refInput ||
+      (env.GITHUB_REF_TYPE === 'branch' ? env.GITHUB_REF_NAME?.trim() : '');
+    if (!repository || !ref)
+      throw new Error(
+        '"issues" needs GITHUB_REPOSITORY and a branch: run it on a branch, or set "ref".',
+      );
+    if (!githubToken)
+      throw new Error('"issues" needs "github-token" (default github.token).');
+    const outcome = await openDecisionIssues(
+      { repository, ref, apiUrl, apiToken, githubApiUrl, githubToken },
+      dependencies.fetch ?? fetch,
+    );
+    io.setOutput('issues-opened', outcome.opened);
+    io.setOutput('decisions-acknowledged', outcome.acknowledged);
+    await io.writeSummary(
+      `\n### InterfaceDelta decisions\n\nOpened ${outcome.opened} issues; ${outcome.existing} decisions already had one; acknowledged ${outcome.acknowledged}.${outcome.remaining ? ' More decisions are waiting for the next run.' : ''}\n`,
+    );
+  }
+}
+
+export async function runAction(
+  rawIo: ActionIo,
+  dependencies: ActionDependencies = {},
+): Promise<void> {
+  const io = redacting(rawIo);
+  const failures: string[] = [];
+  let modes: { check: boolean; watch: boolean; issues: boolean };
+  try {
+    modes = {
+      check: flag(io, 'check', true),
+      watch: flag(io, 'watch', false),
+      issues: flag(io, 'issues', false),
+    };
+  } catch (error) {
+    io.setFailed(error instanceof Error ? error.message : 'Invalid input.');
+    return;
+  }
+  if (!modes.check && !modes.watch && !modes.issues) {
+    io.setFailed('Nothing to do: "check", "watch" and "issues" are all false.');
+    return;
+  }
+  if (modes.check) {
+    const failure = await runCheck(io, dependencies);
+    if (failure) failures.push(failure);
+  }
+  if (modes.watch || modes.issues)
+    try {
+      await runDelivery(io, dependencies, modes);
+    } catch (error) {
+      failures.push(
         sanitizeGithub(
-          url
-            ? (failed[0]?.error.message ?? 'InterfaceDelta Action failed.')
-            : `InterfaceDelta could not check ${failed.map((item) => item.name).join(', ')}: ${failed[0]?.error.message ?? ''}`,
+          error instanceof Error
+            ? error.message
+            : 'InterfaceDelta Action failed.',
         ),
       );
     }
-  } catch (error) {
-    io.setFailed(
-      sanitizeGithub(
-        error instanceof Error
-          ? error.message
-          : 'InterfaceDelta Action failed.',
-      ),
-    );
-  }
+  if (failures.length) io.setFailed(failures.join(' '));
 }

@@ -33,7 +33,39 @@ inputs:
   sarif-output:
     description: Optional path for a SARIF 2.1.0 file to upload to code scanning.
     required: false
+  check:
+    description: Run the compatibility check (default true). Set false for a scheduled job that only opens issues.
+    required: false
+    default: 'true'
+  watch:
+    description: Pro and Team. Sync the dependencies file to InterfaceDelta, which then checks it continuously and delivers each decision to its owner. Run on the default branch with actions/checkout fetch-depth 0, or with github-token for ordering.
+    required: false
+    default: 'false'
+  issues:
+    description: Pro and Team. Open a GitHub issue for each decision InterfaceDelta has for this repository and branch, then acknowledge it. Needs permissions issues write; use concurrency group interfacedelta-decisions.
+    required: false
+    default: 'false'
+  api-token:
+    description: For watch and issues. An InterfaceDelta token bound to this repository and branch, from a secret - lockfiles:write for watch, decisions:read and decisions:ack for issues.
+    required: false
+  api-url:
+    description: InterfaceDelta origin for watch and issues.
+    required: false
+    default: https://interfacedelta.com
+  github-token:
+    description: For issues, and for proving commit order in a shallow checkout when watching. Needs issues write for issues.
+    required: false
+    default: ${{ github.token }}
+  ref:
+    description: Branch to watch or pull decisions for, when not the branch the workflow runs on.
+    required: false
 outputs:
+  watch-status:
+    description: synced, skipped (an older commit than the watched one) or empty when watch is off.
+  issues-opened:
+    description: Issues opened for new decisions.
+  decisions-acknowledged:
+    description: Decisions acknowledged to InterfaceDelta.
   comparison-state:
     description: changed, unchanged, or error when nothing could be checked.
   highest-classification:
