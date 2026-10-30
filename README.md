@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
         with:
           fail-on: breaking,metadata
           on-error: warn
 ```
 
-Pin the full release commit SHA shown on the `v0.3.0` release; the exact `@v0.3.0` tag is the convenient alternative. Do not consume `@main`.
+Pin the full release commit SHA shown on the `v0.3.1` release; the exact `@v0.3.1` tag is the convenient alternative. Do not consume `@main`.
 
 ## Services that need sign-in
 
 Bind each token to a server origin in the workflow, and set the variable from a repository secret:
 
 ```yaml
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.0
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
   env:
     INTERFACEDELTA_TOKEN_GITHUB: ${{ secrets.INTERFACEDELTA_GITHUB_MCP_TOKEN }}
   with:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
         with:
           watch: true
           api-token: ${{ secrets.INTERFACEDELTA_WATCH_TOKEN }}
@@ -69,7 +69,14 @@ jobs:
 
 With `issues: true`, the Action opens one GitHub issue for each decision InterfaceDelta has for this repository and branch, then acknowledges it. InterfaceDelta holds no GitHub credential: issues are opened with the workflow's own `GITHUB_TOKEN`.
 
-Each issue carries the label `interfacedelta` and the decision's marker, `interfacedelta-decision:<id>`. Every labelled issue, open or closed, is read first, so a decision gets one issue even if a run is interrupted. Keep the label on these issues. Owners from the dependencies file are mentioned, and text that comes from the services is escaped. A run handles up to 100 decisions, and the rest wait for the next run. Decisions not picked up within seven days expire, and the account owner is emailed.
+Each issue carries the label `interfacedelta` and the decision's marker, `interfacedelta-decision:<id>`. Every labelled issue, open or closed, is read first, so a decision gets one issue even if a run is interrupted. Keep the label on these issues. Owners from the dependencies file are mentioned, and text that comes from the services is escaped. A run handles up to 100 decisions, and the rest wait for the next run. Decisions not picked up within seven days expire, and the account owner is emailed. From 0.3.1, each issue links to the decision's page on InterfaceDelta.
+
+Decisions are queued for issues only while a GitHub destination exists for the repository; a decision made before the destination was added stays email, Slack and webhook only. From 0.3.1, when the repository has no GitHub destination and nothing is waiting, the run shows a warning that says so and links to Routing.
+
+Before the first run:
+
+1. In InterfaceDelta, open Routing → Destinations and add a GitHub destination for the repository, as `owner/name`.
+2. Create a delivery token for that repository and branch with the `decisions:read` and `decisions:ack` scopes, and store it as a repository secret.
 
 ```yaml
 on:
@@ -84,7 +91,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
         with:
           check: false
           issues: true

@@ -34,6 +34,11 @@ export type IssuesOutcome = {
   acknowledged: number;
   /** More decisions are waiting than this run handled. */
   remaining: boolean;
+  /**
+   * Nothing waited and InterfaceDelta has no GitHub destination for this
+   * repository, so no decision can become an issue yet.
+   */
+  noDestination?: boolean;
 };
 
 type Card = {
@@ -114,18 +119,71 @@ const validCard = (value: unknown): value is Card => {
   );
 };
 
+/**
+ * A change in words, as InterfaceDelta's emails and decision page say it
+ * (the hosted service words it the same way): "operation cancelOrder
+ * removed". Cards before 0.3.1 carry no subject: "operation removed".
+ */
+export function changePhrase(change: { code?: unknown; subject?: unknown }) {
+  const code = String(change.code ?? '');
+  const text = (
+    /^[A-Z][A-Z0-9_]*$/.test(code)
+      ? code
+          .replace(/^(OPENAPI|MCP|A2A|ARD|WEBMCP)_(?=[A-Z])/, '')
+          .toLowerCase()
+          .replaceAll('_', ' ')
+      : code
+  ).trim();
+  const subject = change.subject as { kind?: unknown; name?: unknown } | null;
+  if (
+    !subject ||
+    typeof subject.kind !== 'string' ||
+    typeof subject.name !== 'string'
+  )
+    return text;
+  const kind = (subject.kind.split('.').at(-1) ?? '').replaceAll('_', ' ');
+  const [first, ...rest] = text.split(' ');
+  return rest.length && (first === kind || first === 'capability')
+    ? `${kind} ${subject.name} ${rest.join(' ')}`
+    : `${text} on ${kind} ${subject.name}`;
+}
+
+/** The headline without the dependency name older cards already carry. */
+const headlineOf = (card: Card) => {
+  const headline = typeof card.headline === 'string' ? card.headline : '';
+  const dependency = typeof card.dependency === 'string' ? card.dependency : '';
+  return dependency && headline.startsWith(`${dependency}: `)
+    ? headline.slice(dependency.length + 2)
+    : headline || 'interface change';
+};
+
 export function issueTitle(card: Card) {
   return sanitizeTerminal(
-    `InterfaceDelta: ${card.decision.toUpperCase()} — ${typeof card.dependency === 'string' ? `${card.dependency}: ` : ''}${typeof card.headline === 'string' ? card.headline : 'interface change'}`,
+    `InterfaceDelta: ${card.decision.toUpperCase()} — ${typeof card.dependency === 'string' ? `${card.dependency}: ` : ''}${headlineOf(card)}`,
     200,
   );
 }
 
-export function issueBody(card: Card) {
+/** What the decision means for checks, in the decision page's words. */
+const consequence = (card: Card) => {
+  const where = `${markdown(card.repository, 201)} on ${markdown(card.ref, 255)}`;
+  return card.decision === 'block'
+    ? `Checks for ${where} fail until the change is accepted in the lockfile or the baseline is updated.`
+    : card.decision === 'warn'
+      ? `Checks for ${where} still pass with a warning.`
+      : `Recorded for ${where}. Nothing to do.`;
+};
+
+/**
+ * The issue reads as a short list, not a table, so GitHub's notification
+ * email stays readable as plain text too. `decisionUrl` is built from the
+ * configured api-url, never from the card.
+ */
+export function issueBody(card: Card, decisionUrl?: string) {
   const changes = new Map(
     (Array.isArray(card.changes) ? card.changes : []).map((change) => [
       (change as { id?: unknown }).id,
-      change as { code?: unknown; classification?: unknown },
+      change as { code?: unknown; classification?: unknown; subject?: unknown },
     ]),
   );
   const results = (Array.isArray(card.results) ? card.results : []).slice(
@@ -139,9 +197,15 @@ export function issueBody(card: Card) {
     note?: unknown;
     card?: { step?: unknown };
   }[];
-  const rows = results.map((result) => {
+  const items = results.flatMap((result) => {
     const change = changes.get(result.change);
-    return `| ${markdown(String(result.action ?? '').toUpperCase(), 10)} | ${markdown(result.dependency, 64)} | ${markdown(change?.code ?? result.change, 100)} | ${markdown(change?.classification ?? '', 40)} | ${result.owner ? owner(result.owner) : ''} | ${markdown(result.note ?? result.card?.step ?? '', 200)} |`;
+    const what = change ? changePhrase(change) : String(result.change ?? '');
+    const step = result.note ?? result.card?.step;
+    return [
+      `- **${markdown(String(result.action ?? '').toUpperCase(), 10)}** ${markdown(result.dependency, 64)}: ${markdown(what, 300)}${change?.classification ? ` (${markdown(change.classification === 'indeterminate' ? 'needs review' : String(change.classification).replaceAll('_', '-'), 40)})` : ''}`,
+      ...(result.owner ? [`  Owner: ${owner(result.owner)}`] : []),
+      ...(step ? [`  Next step: ${markdown(step, 200)}`] : []),
+    ];
   });
   const total = Number(card.totalResults ?? results.length);
   const evidence = (Array.isArray(card.evidence) ? card.evidence : [])
@@ -149,18 +213,26 @@ export function issueBody(card: Card) {
     .filter((id): id is string => typeof id === 'string')
     .map((id) => `\`${markdown(id, 36)}\``);
   const lines = [
-    `**${markdown(card.decision.toUpperCase(), 10)}** — ${markdown(card.headline, 300)}`,
+    `**${markdown(card.decision.toUpperCase(), 10)}** — ${markdown(typeof card.dependency === 'string' ? `${card.dependency}: ${headlineOf(card)}` : headlineOf(card), 300)}`,
+    '',
+    consequence(card),
+    ...(decisionUrl
+      ? ['', `**[View the decision on InterfaceDelta](${decisionUrl})**`]
+      : []),
+    '',
+    '### What changed',
+    '',
+    ...items,
+    ...(card.truncated === true || total > results.length
+      ? [
+          '',
+          `${total - results.length} more results are in the decision record.`,
+        ]
+      : []),
     '',
     `Repository ${markdown(card.repository, 201)} · branch ${markdown(card.ref, 255)} · commit ${markdown(String(card.commitSha ?? '').slice(0, 12), 12)}`,
-    '',
-    '| Decision | Dependency | Change | Classification | Owner | Note or next step |',
-    '| --- | --- | --- | --- | --- | --- |',
-    ...rows,
-    ...(card.truncated === true || total > rows.length
-      ? ['', `${total - rows.length} more results are in the decision record.`]
-      : []),
     ...(evidence.length
-      ? ['', `Evidence: observation ${evidence.join(', ')}`]
+      ? [`Evidence: observation ${evidence.join(', ')}`]
       : []),
     '',
     '_A deterministic compatibility decision from your dependencies file, not a security, safety, trust or certification assessment._',
@@ -238,8 +310,11 @@ export async function openDecisionIssues(
     const page = (await json(response)) as {
       decisions?: unknown;
       nextCursor?: unknown;
+      githubDestination?: unknown;
     } | null;
     const cards = Array.isArray(page?.decisions) ? page.decisions : [];
+    if (!cursor && !cards.length && page?.githubDestination === false)
+      outcome.noDestination = true;
     for (const card of cards) {
       if (handled >= max) {
         outcome.remaining = true;
@@ -262,7 +337,13 @@ export async function openDecisionIssues(
             },
             body: JSON.stringify({
               title: redact(issueTitle(card)),
-              body: issueBody(card),
+              body: issueBody(
+                card,
+                new URL(
+                  `/decisions/${encodeURIComponent(card.id)}`,
+                  options.apiUrl,
+                ).href,
+              ),
               labels: [ISSUE_LABEL],
             }),
           },

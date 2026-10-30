@@ -1,7 +1,7 @@
 {
   "name": "interfacedelta-action",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "InterfaceDelta Compatibility Check GitHub Action",
   "type": "module",
   "packageManager": "pnpm@10.33.4",
@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@actions/core": "3.0.1",
-    "interfacedelta": "0.3.0"
+    "interfacedelta": "0.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.0",

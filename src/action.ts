@@ -521,8 +521,13 @@ async function runDelivery(
     );
     io.setOutput('issues-opened', outcome.opened);
     io.setOutput('decisions-acknowledged', outcome.acknowledged);
+    // A run that cannot open issues must not look like a quiet one.
+    const missing = outcome.noDestination
+      ? `InterfaceDelta has no GitHub destination for ${repository}, so its decisions do not become issues. Add one in Routing → Destinations: ${new URL('/routing', apiUrl).href}. Decisions made before it was added stay email, Slack and webhook only.`
+      : '';
+    if (missing) io.warning(missing);
     await io.writeSummary(
-      `\n### InterfaceDelta decisions\n\nOpened ${outcome.opened} issues; ${outcome.existing} decisions already had one; acknowledged ${outcome.acknowledged}.${outcome.remaining ? ' More decisions are waiting for the next run.' : ''}\n`,
+      `\n### InterfaceDelta decisions\n\nOpened ${outcome.opened} issues; ${outcome.existing} decisions already had one; acknowledged ${outcome.acknowledged}.${outcome.remaining ? ' More decisions are waiting for the next run.' : ''}${missing ? `\n\n${markdown(missing, 500)}` : ''}\n`,
     );
   }
 }

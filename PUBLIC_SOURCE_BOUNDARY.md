@@ -1,6 +1,6 @@
 # Public source boundary
 
-This repository is an allowlisted export from the private canonical InterfaceDelta engineering repository. It contains maintainable Action source, build metadata, and its committed runtime bundle, built from this source against the published `interfacedelta@0.3.0` package. It excludes private hosted and operational source.
+This repository is an allowlisted export from the private canonical InterfaceDelta engineering repository. It contains maintainable Action source, build metadata, and its committed runtime bundle, built from this source against the published `interfacedelta@0.3.1` package. It excludes private hosted and operational source.
 
 ## Exported files
 
