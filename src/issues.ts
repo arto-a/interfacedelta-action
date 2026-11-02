@@ -304,7 +304,7 @@ export async function openDecisionIssues(
     );
     if (response.status === 401)
       throw new Error(
-        'InterfaceDelta refused the API token. It needs the decisions:read and decisions:ack scopes for this repository and branch.',
+        'InterfaceDelta refused the watch token from Routing → Watch tokens. It needs the decisions:read and decisions:ack scopes for this repository and branch.',
       );
     if (!response.ok) await failure(response, 'InterfaceDelta');
     const page = (await json(response)) as {

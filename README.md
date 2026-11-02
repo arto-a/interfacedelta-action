@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.4.0
         with:
           fail-on: breaking,metadata
           on-error: warn
 ```
 
-Pin the full release commit SHA shown on the `v0.3.1` release; the exact `@v0.3.1` tag is the convenient alternative. Do not consume `@main`.
+Pin the full release commit SHA shown on the `v0.4.0` release; the exact `@v0.4.0` tag is the convenient alternative. Do not consume `@main`.
 
 ## Services that need sign-in
 
 Bind each token to a server origin in the workflow, and set the variable from a repository secret:
 
 ```yaml
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.4.0
   env:
     INTERFACEDELTA_TOKEN_GITHUB: ${{ secrets.INTERFACEDELTA_GITHUB_MCP_TOKEN }}
   with:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.4.0
         with:
           watch: true
           api-token: ${{ secrets.INTERFACEDELTA_WATCH_TOKEN }}
@@ -76,7 +76,7 @@ Decisions are queued for issues only while a GitHub destination exists for the r
 Before the first run:
 
 1. In InterfaceDelta, open Routing → Destinations and add a GitHub destination for the repository, as `owner/name`.
-2. Create a delivery token for that repository and branch with the `decisions:read` and `decisions:ack` scopes, and store it as a repository secret.
+2. In [Routing → Watch tokens](https://interfacedelta.com/routing#delivery-tokens), create a watch token for that repository and branch with the `decisions:read` and `decisions:ack` scopes, and store it as a repository secret.
 
 ```yaml
 on:
@@ -91,14 +91,14 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.3.1
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.4.0
         with:
           check: false
           issues: true
           api-token: ${{ secrets.INTERFACEDELTA_DECISIONS_TOKEN }}
 ```
 
-Create each token in InterfaceDelta for the repository and branch. Give the watch token `lockfiles:write`, and the issues token `decisions:read` and `decisions:ack`. The Action masks both tokens and sends each only to its own service.
+Create each watch token in [Routing → Watch tokens](https://interfacedelta.com/routing#delivery-tokens) for the repository and branch. For watching, grant `lockfiles:write` and save it as `INTERFACEDELTA_WATCH_TOKEN`; for issues, grant `decisions:read` and `decisions:ack` and save that separate watch token as `INTERFACEDELTA_DECISIONS_TOKEN`. Account’s REST API tokens do not grant these scopes. The Action masks both tokens and sends each only to its own service.
 
 ## Inputs
 
@@ -111,7 +111,7 @@ Create each token in InterfaceDelta for the repository and branch. Give the watc
 - `sarif-output`: path for a SARIF 2.1.0 file. To show findings in code scanning, add `github/codeql-action/upload-sarif` after this step; that step needs `security-events: write`.
 - `check`: run the compatibility check (default `true`). Set `false` for a job that only watches or opens issues.
 - `watch`, `issues`: see above (both default `false`). They run after the check, whatever its result; the job then fails once, with every reason.
-- `api-token`: the InterfaceDelta token for `watch` and `issues`, from a secret.
+- `api-token`: the InterfaceDelta watch token for `watch` and `issues`, from a secret.
 - `github-token`: for `issues`, and for proving commit order in a shallow checkout (default `github.token`).
 - `api-url`: InterfaceDelta origin (default `https://interfacedelta.com`).
 - `ref`: the branch to watch or pull decisions for, when it is not the branch the workflow runs on.
@@ -129,3 +129,30 @@ The Action uses the bundled Node 24 runtime artifact, built from this repository
 Breaking changes fail by default. Indeterminate findings warn and pass unless selected. Execution and configuration failures are reported as errors, never as breaking changes. A baseline committed by an earlier version is refused; regenerate it with `interfacedelta baseline` and commit the new file. A passing result does not establish safety, security, trust, compliance, full behavioral compatibility, or certification.
 
 Use ordinary `pull_request`, never `pull_request_target`: it would expose your secrets to code from forks. Checking needs no write permissions; only `issues: true` needs `issues: write`.
+
+## Export a policy artifact
+
+Set `policy-export` to `github` or `generic` (unset by default). The Action writes
+`.interfacedelta/policy-<format>.json` from the check it already ran and sets
+`policy-export-path`. It requires `check: true` (the default). It also writes
+review entries when checks fail, without changing the job's failure result.
+
+```yaml
+- uses: actions/checkout@v4
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.4.0
+  id: compatibility
+  with:
+    policy-export: github
+- uses: actions/upload-artifact@v4
+  if: ${{ always() && steps.compatibility.outputs.policy-export-path != '' }}
+  with:
+    name: dependency-policy
+    path: ${{ steps.compatibility.outputs.policy-export-path }}
+```
+
+The GitHub file wraps `managedSettings` and an `excluded` review list. Only the
+`managedSettings` object is GitHub configuration; copy it into
+`copilot/managed-settings.json` after review. It permits passing explicit MCP
+endpoints only, with no wildcard matchers. Generic output lists all dependencies
+with `allow` or `review` decisions and reasons. An allowed entry means its
+configured compatibility check passed. The Action does not install the policy.

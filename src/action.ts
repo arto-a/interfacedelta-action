@@ -26,6 +26,8 @@ import {
   runWatch,
   type WatchEnvironment,
   toSarif,
+  toGenericAllowlist,
+  toGitHubAllowlist,
   writeAtomic,
   type CheckResult,
   type CheckSetResult,
@@ -289,6 +291,9 @@ async function runCheck(
   dependencies: ActionDependencies,
 ): Promise<string | undefined> {
   try {
+    const policyFormat = io.getInput('policy-export').trim();
+    if (policyFormat && policyFormat !== 'github' && policyFormat !== 'generic')
+      throw new Error('Input "policy-export" must be github or generic.');
     const url = io.getInput('url').trim();
     const dependenciesPath = io.getInput('dependencies').trim();
     if (url && dependenciesPath)
@@ -393,6 +398,25 @@ async function runCheck(
         else io.warning(message);
       }
     }
+    if (policyFormat) {
+      const path = `.interfacedelta/policy-${policyFormat}.json`;
+      const exportPolicy =
+        policyFormat === 'github' ? toGitHubAllowlist : toGenericAllowlist;
+      await writeAtomic(
+        path,
+        machineJson(
+          exportPolicy(
+            set.dependencies.map((outcome) => ({ ...outcome, outcome })),
+            {
+              generatedFrom:
+                url || dependenciesPath || DEFAULT_DEPENDENCIES_PATH,
+            },
+          ),
+        ),
+        true,
+      );
+      io.setOutput('policy-export-path', path);
+    }
     const jsonOutput = io.getInput('json-output').trim();
     // Atomic rename replaces a planted symlink instead of writing through it.
     if (jsonOutput) await writeAtomic(jsonOutput, machineJson(set), true);
@@ -463,7 +487,7 @@ async function runDelivery(
   const apiToken = io.getInput('api-token').trim();
   if (!apiToken)
     throw new Error(
-      'Set "api-token" from a secret: an InterfaceDelta token bound to this repository and branch.',
+      'Set "api-token" from a secret: an InterfaceDelta watch token from Routing → Watch tokens, bound to this repository and branch.',
     );
   io.setSecret(apiToken);
   const githubToken = io.getInput('github-token').trim();
@@ -547,6 +571,10 @@ export async function runAction(
     };
   } catch (error) {
     io.setFailed(error instanceof Error ? error.message : 'Invalid input.');
+    return;
+  }
+  if (!modes.check && io.getInput('policy-export').trim()) {
+    io.setFailed('Input "policy-export" requires check: true.');
     return;
   }
   if (!modes.check && !modes.watch && !modes.issues) {

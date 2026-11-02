@@ -27,6 +27,9 @@ inputs:
   on-error:
     description: fail (default) or warn. With warn, a dependency that cannot be reached is reported but does not fail the run.
     required: false
+  policy-export:
+    description: Export github or generic policy from this check to .interfacedelta/policy-<format>.json. Requires check true; GitHub output wraps managedSettings and exclusions.
+    required: false
   json-output:
     description: Optional path for the interfacedelta-check-set-v1 JSON result.
     required: false
@@ -46,7 +49,7 @@ inputs:
     required: false
     default: 'false'
   api-token:
-    description: For watch and issues. An InterfaceDelta token bound to this repository and branch, from a secret - lockfiles:write for watch, decisions:read and decisions:ack for issues.
+    description: For watch and issues. An InterfaceDelta watch token from Routing → Watch tokens, bound to this repository and branch, from a secret - lockfiles:write for watch, decisions:read and decisions:ack for issues.
     required: false
   api-url:
     description: InterfaceDelta origin for watch and issues.
@@ -60,6 +63,8 @@ inputs:
     description: Branch to watch or pull decisions for, when not the branch the workflow runs on.
     required: false
 outputs:
+  policy-export-path:
+    description: Path to the exported policy JSON file.
   watch-status:
     description: synced, skipped (an older commit than the watched one) or empty when watch is off.
   issues-opened:
