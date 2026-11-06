@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.5.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
         with:
           fail-on: breaking,metadata
           on-error: warn
 ```
 
-Pin the full release commit SHA shown on the `v0.5.0` release; the exact `@v0.5.0` tag is the convenient alternative. Do not consume `@main`.
+Pin the full release commit SHA shown on the `v0.6.0` release; the exact `@v0.6.0` tag is the convenient alternative. Do not consume `@main`.
 
 ## Services that need sign-in
 
 Bind each token to a server origin in the workflow, and set the variable from a repository secret:
 
 ```yaml
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.5.0
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
   env:
     INTERFACEDELTA_TOKEN_GITHUB: ${{ secrets.INTERFACEDELTA_GITHUB_MCP_TOKEN }}
   with:
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.5.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
         with:
           watch: true
           api-token: ${{ secrets.INTERFACEDELTA_WATCH_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.5.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
         with:
           check: false
           issues: true
@@ -139,7 +139,7 @@ review entries when checks fail, without changing the job's failure result.
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.5.0
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
   id: compatibility
   with:
     policy-export: github

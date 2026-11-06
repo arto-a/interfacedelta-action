@@ -1,6 +1,6 @@
 # Third-party notices
 
-InterfaceDelta GitHub Action 0.5.0 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
+InterfaceDelta GitHub Action 0.6.0 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
 
 | Package | Version | License |
 | --- | --- | --- |
@@ -47,6 +47,34 @@ These files are exact copies of upstream artifacts, embedded in the bundle for o
 | oas-3.1-schema.json | OAI/OpenAPI-Specification | https://spec.openapis.org/oas/3.1/schema/2025-09-15 | OpenAPI 3.1 document schema, as published | d0a3955182364c7b5fdebfd0583ecad259a870b4a2fe86a1b0fe8785f8224fed | Apache-2.0 |
 
 The MCP Server Card schema is experimental upstream and is not an accepted MCP extension at this revision. The A2A bundle is non-normative by upstream description.
+
+## Derived protocol schema artifacts
+
+These files are derived from the named upstream revision (a bundle of the schema and its dependencies, or the subset needed for validation) and embedded in the bundle for offline validation. Each upstream project distributes them under the Apache License 2.0, whose text is in LICENSE.
+
+| Artifact | Upstream | Revision | Derived from | SHA-256 | License |
+| --- | --- | --- | --- | --- | --- |
+| ucp-profile.bundle.json | Universal-Commerce-Protocol/ucp | 58c7ab92dcf80b3b1fc756d577b0552ec1cd503a | source/schemas/profile.json#/$defs/business_schema and its schema dependencies, bundled | 1808488f174f0674d9f25e7707ec478d7557cc28d0d2fa19fff6df15e3abe9c1 | Apache-2.0 |
+| acp-discovery.json | agentic-commerce-protocol/agentic-commerce-protocol | 7fdd78df677a94dce04c770644b0fbbb1401272b | spec/2026-04-17/json-schema/schema.agentic_checkout.json (DiscoveryResponse and its referenced definitions) | 488be5b36d6e1de0884883e2f9dbf674cacfe71364edeefe3164cc1a6e1f6f9a | Apache-2.0 |
+
+NOTICE for acp-discovery.json (agentic-commerce-protocol/agentic-commerce-protocol):
+
+```text
+Copyright 2025 OpenAI
+Copyright 2025 Stripe
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
 
 ## @actions/core@3.0.1 (MIT)
 
