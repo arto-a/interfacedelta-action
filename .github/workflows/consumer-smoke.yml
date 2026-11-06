@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Run immutable released Action
         id: interfacedelta
-        uses: arto-a/interfacedelta-action@5533b496b57f990dbf44405d726c7905cca19a33 # v0.5.0
+        uses: arto-a/interfacedelta-action@298834b042d6e1718aee490c1694fa0b185fe458 # v0.6.0
         with:
           url: https://example.com
           baseline: .interfacedelta/passport.json
