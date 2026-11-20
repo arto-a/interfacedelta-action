@@ -98,14 +98,41 @@ async function json(response: Response): Promise<unknown> {
 }
 
 async function failure(response: Response, what: string): Promise<never> {
-  const body = (await json(response)) as {
-    error?: { message?: unknown };
-    message?: unknown;
-  } | null;
-  const reason = body?.error?.message ?? body?.message;
+  // Provider bodies may contain credentials or private repository details.
   throw new Error(
-    `${what} answered ${response.status}.${typeof reason === 'string' ? ` ${sanitizeTerminal(reason, 300)}` : ''}`,
+    `${what} answered ${response.status}. Try again in the next run.`,
   );
+}
+
+async function githubFailure(response: Response, what: string): Promise<never> {
+  // GitHub's secondary (content-creation) limit is a 403 with retry-after, or
+  // a body naming it; the body is matched, never echoed.
+  const secondaryLimit =
+    response.status === 403 &&
+    (response.headers.get('retry-after') !== null ||
+      /secondary rate limit/i.test(await response.text().catch(() => '')));
+  if (
+    response.status === 429 ||
+    secondaryLimit ||
+    (response.status === 403 &&
+      response.headers.get('x-ratelimit-remaining') === '0')
+  )
+    throw new Error(
+      'GitHub rate limit reached. Retry in the next run after the rate limit resets; the decision remains unacknowledged.',
+    );
+  if (response.status === 401)
+    throw new Error(
+      'GitHub refused GITHUB_TOKEN. Use a valid workflow token with permissions: issues: write and access to this repository.',
+    );
+  if (response.status === 403 || response.status === 404)
+    throw new Error(
+      'GitHub refused repository access. Give the workflow permissions: issues: write and make sure its token can access this repository.',
+    );
+  if (response.status === 410)
+    throw new Error(
+      'GitHub says issues are disabled for this repository. Enable issues before the next run.',
+    );
+  return failure(response, what);
 }
 
 const validCard = (value: unknown): value is Card => {
@@ -254,7 +281,7 @@ async function existingMarkers(options: IssuesOptions, fetcher: typeof fetch) {
       `${options.githubApiUrl}/repos/${options.repository}/issues?labels=${ISSUE_LABEL}&state=all&per_page=100&page=${page}`,
       { headers: githubHeaders(options) },
     );
-    if (!response.ok) await failure(response, 'GitHub, listing issues,');
+    if (!response.ok) await githubFailure(response, 'GitHub, listing issues,');
     const issues = (await json(response)) as
       { body?: unknown; pull_request?: unknown }[] | null;
     if (!Array.isArray(issues)) break;
@@ -302,9 +329,9 @@ export async function openDecisionIssues(
       `${base}?ref=${ref}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`,
       { headers: auth },
     );
-    if (response.status === 401)
+    if (response.status === 401 || response.status === 403)
       throw new Error(
-        'InterfaceDelta refused the watch token from Routing → Watch tokens. It needs the decisions:read and decisions:ack scopes for this repository and branch.',
+        'InterfaceDelta refused the watch token from Routing → Watch tokens. It may be revoked, expired or missing access. Create a replacement with the decisions:read and decisions:ack scopes for this repository and branch.',
       );
     if (!response.ok) await failure(response, 'InterfaceDelta');
     const page = (await json(response)) as {
@@ -348,11 +375,8 @@ export async function openDecisionIssues(
             }),
           },
         );
-        if (created.status === 403 || created.status === 404)
-          throw new Error(
-            'GitHub refused to create an issue. Give the workflow `permissions: issues: write` and make sure issues are enabled.',
-          );
-        if (!created.ok) await failure(created, 'GitHub, creating an issue,');
+        if (!created.ok)
+          await githubFailure(created, 'GitHub, creating an issue,');
         markers.add(card.marker);
         outcome.opened += 1;
       }

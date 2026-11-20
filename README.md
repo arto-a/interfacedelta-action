@@ -16,20 +16,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.7.0
         with:
           fail-on: breaking,metadata
           on-error: warn
 ```
 
-Pin the full release commit SHA shown on the `v0.6.0` release; the exact `@v0.6.0` tag is the convenient alternative. Do not consume `@main`.
+Pin the full release commit SHA shown on the `v0.7.0` release; the exact `@v0.7.0` tag is the convenient alternative. Do not consume `@main`.
 
 ## Services that need sign-in
 
 Bind each token to a server origin in the workflow, and set the variable from a repository secret:
 
 ```yaml
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.7.0
   env:
     INTERFACEDELTA_TOKEN_GITHUB: ${{ secrets.INTERFACEDELTA_GITHUB_MCP_TOKEN }}
   with:
@@ -43,7 +43,7 @@ A binding line may name an exact MCP endpoint URL instead of an origin. A bindin
 
 Never run this Action from `pull_request_target`, or from any workflow that has secrets and checks out untrusted pull request code: the checked-out dependencies file chooses the endpoints, so it could point a bound origin's token at any path on that origin.
 
-## Watching and issues (Pro and Team)
+## Connected repositories and issues (Pro and Team)
 
 With `watch: true`, the Action hands the dependencies file to InterfaceDelta. InterfaceDelta then checks every dependency continuously and delivers each decision to its owner by Slack, signed webhook, email or a GitHub issue. Run it on the default branch whenever the file changes. Use `actions/checkout` with `fetch-depth: 0` so the Action can prove the commit is newer than the watched one. In a shallow checkout it asks GitHub through `github-token`. A run on an older commit is skipped.
 
@@ -61,7 +61,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.7.0
         with:
           watch: true
           api-token: ${{ secrets.INTERFACEDELTA_WATCH_TOKEN }}
@@ -91,14 +91,14 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
+      - uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.7.0
         with:
           check: false
           issues: true
           api-token: ${{ secrets.INTERFACEDELTA_DECISIONS_TOKEN }}
 ```
 
-Create each watch token in [Routing → Watch tokens](https://interfacedelta.com/routing#delivery-tokens) for the repository and branch. For watching, grant `lockfiles:write` and save it as `INTERFACEDELTA_WATCH_TOKEN`; for issues, grant `decisions:read` and `decisions:ack` and save that separate watch token as `INTERFACEDELTA_DECISIONS_TOKEN`. Account’s REST API tokens do not grant these scopes. The Action masks both tokens and sends each only to its own service.
+Create each watch token in [Routing → Watch tokens](https://interfacedelta.com/routing#delivery-tokens) for the repository and branch. For connected repositories, grant `lockfiles:write` and save it as `INTERFACEDELTA_WATCH_TOKEN`; for issues, grant `decisions:read` and `decisions:ack` and save that separate watch token as `INTERFACEDELTA_DECISIONS_TOKEN`. Account’s REST API tokens do not grant these scopes. The Action masks both tokens and sends each only to its own service.
 
 ## Inputs
 
@@ -107,6 +107,7 @@ Create each watch token in [Routing → Watch tokens](https://interfacedelta.com
 - `tokens`: bearer token bindings, one `<https-origin>=INTERFACEDELTA_TOKEN_<NAME>` per line (see above).
 - `fail-on`: comma-separated `breaking` (default), `non_breaking`, `indeterminate`, `informational`, `metadata`. `metadata` fails on changed tool names, titles, descriptions and other non-contract metadata.
 - `on-error`: `fail` (default) or `warn`. With `warn`, a service that cannot be reached is annotated as a warning and does not fail the run; a missing or malformed baseline, or a missing or refused token, always fails.
+- `find-uses`: `true` (default) or `false`. After decisions, search the checked-out repository (`GITHUB_WORKSPACE`) for likely uses of the names each blocked or warned change touched: tool, prompt and resource names, and the last segment of a changed field path, matched case-sensitively as whole identifiers (`create_pull_request` matches a call site, `create_pull_request_v2` does not). The results are hints only: a "Likely uses" summary section, `notice` annotations with file and line (at most 50), and the `likely-uses-count` output. The scan never follows symlinks or leaves the workspace, skips dependency, build and tool directories, binary and large files, and stops at 20,000 files or 64 MiB read. It reports file and line only, never line text, and never changes the check result, exit code or SARIF.
 - `json-output`: path for the `interfacedelta-check-set-v1` JSON result.
 - `sarif-output`: path for a SARIF 2.1.0 file. To show findings in code scanning, add `github/codeql-action/upload-sarif` after this step; that step needs `security-events: write`.
 - `check`: run the compatibility check (default `true`). Set `false` for a job that only watches or opens issues.
@@ -118,7 +119,7 @@ Create each watch token in [Routing → Watch tokens](https://interfacedelta.com
 
 ## Outputs
 
-`comparison-state` (`changed`, `unchanged` or `error`), `highest-classification`, four classification counts summed across dependencies, `current-fingerprint` (single `url` only), `policy-result` (`passed`, `failed` or `error`), `error-kind` (the most serious of `configuration`, `credentials`, `internal` and `inspection`, or `none`), and `dependencies-checked`, `dependencies-failed`, `dependencies-errored`, `dependencies-skipped`, and the decision counts `blocked-count`, `warned-count`, `accepted-count` with `owners`: the owners of blocked changes, comma-separated, ready for a review request. With `watch`, `watch-status` is `synced` or `skipped`. With `issues`, `issues-opened` and `decisions-acknowledged` are set. Pass it to a later step through `env:` rather than inline `${{ }}` in a `run:` script; owner labels are restricted to handle characters, but `env:` keeps any output out of shell syntax.
+`comparison-state` (`changed`, `unchanged` or `error`), `highest-classification`, four classification counts summed across dependencies, `current-fingerprint` (single `url` only), `policy-result` (`passed`, `failed` or `error`), `error-kind` (the most serious of `configuration`, `credentials`, `internal` and `inspection`, or `none`), and `dependencies-checked`, `dependencies-failed`, `dependencies-errored`, `dependencies-skipped`, and the decision counts `blocked-count`, `warned-count`, `accepted-count` with `owners`: the owners of blocked changes, comma-separated, ready for a review request. With `find-uses` (the default), `likely-uses-count` is the number of likely-use locations found in the checked-out repository. With `watch`, `watch-status` is `synced` or `skipped`. With `issues`, `issues-opened` and `decisions-acknowledged` are set. Pass it to a later step through `env:` rather than inline `${{ }}` in a `run:` script; owner labels are restricted to handle characters, but `env:` keeps any output out of shell syntax.
 
 Decision rules, owners and acceptances live in the dependencies file (see the CLI README). Blocked changes are annotated as errors and warned ones as warnings, each with its owner, rule and next step; the summary lists blocked and warned counts and owners per dependency.
 
@@ -139,7 +140,7 @@ review entries when checks fail, without changing the job's failure result.
 
 ```yaml
 - uses: actions/checkout@v4
-- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.6.0
+- uses: arto-a/interfacedelta-action@<release-commit-sha> # v0.7.0
   id: compatibility
   with:
     policy-export: github

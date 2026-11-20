@@ -20,6 +20,7 @@ import {
   readJsonFile,
   sanitizeGithub,
   summarizeOutcomes,
+  scanLikelyUses,
   DEFAULT_API_URL,
   defaultGit,
   formatWatch,
@@ -34,6 +35,7 @@ import {
   type Decision,
   type DependencyOutcome,
   type Inspector,
+  type LikelyUsesReport,
   type SarifEntry,
   type TokenBinding,
 } from 'interfacedelta';
@@ -66,6 +68,11 @@ export type ActionIo = {
   setOutput(name: string, value: string | number): void;
   warning(message: string): void;
   error(message: string): void;
+  /** A neutral annotation; `file` and `startLine` anchor it in the diff. */
+  notice(
+    message: string,
+    properties?: { file?: string; startLine?: number },
+  ): void;
   setFailed(message: string): void;
   writeSummary(markdown: string): Promise<void>;
   /** Masks a value in every later log line (core.setSecret). */
@@ -73,6 +80,8 @@ export type ActionIo = {
 };
 
 const DISPLAY_LIMIT = 20;
+/** Notice annotations for likely uses: GitHub shows only the first ~50. */
+export const LIKELY_USES_ANNOTATION_LIMIT = 50;
 const ACTION_RANK = { block: 0, warn: 1, allow: 2 } as const;
 /** Blocked, warned and accepted changes, most serious first. */
 const notableDecisions = (result: CheckResult) =>
@@ -104,6 +113,49 @@ const findingLine = (
 };
 const DISCLAIMER =
   '_This is a deterministic compatibility result, not a security, safety, trust, or certification assessment._';
+const LIKELY_USES_HINT =
+  '_Where the checked-out repository may use a changed name. Hints, not proof of use._';
+
+/**
+ * The "Likely uses" summary section: one block per blocked or warned change
+ * with locations, and a note when the scan stopped early. Paths and terms
+ * only; never line text.
+ */
+function likelyUsesSummary(results: readonly CheckResult[]): string[] {
+  const reports = results.filter((result) => result.likelyUses);
+  if (!reports.length) return [];
+  const lines: string[] = [];
+  let truncated = false;
+  for (const result of reports) {
+    const report = result.likelyUses as LikelyUsesReport;
+    truncated = truncated || report.truncated;
+    for (const { change: id, uses } of report.changes) {
+      if (!uses.length) continue;
+      const index = result.comparison.changes.findIndex(
+        (item) => item.semanticId === id,
+      );
+      const change = result.comparison.changes[index];
+      const decision = result.decisions[index];
+      lines.push(
+        `- **${markdown(decision ? decision.action.toUpperCase() : 'CHANGED', 10)} ${markdown(change?.code ?? id, 100)}** (${markdown(change ? subjectOf(change, result) : id, 260)})`,
+      );
+      for (const use of uses)
+        lines.push(
+          `  - \`${markdown(use.path, 300)}:${use.line}\` — \`${markdown(use.term, 200)}\``,
+        );
+    }
+  }
+  return [
+    '',
+    '### Likely uses',
+    '',
+    LIKELY_USES_HINT,
+    ...(lines.length ? lines : ['- None found in the checked-out repository.']),
+    ...(truncated
+      ? ['', '_The scan stopped early at its size cap; more uses may exist._']
+      : []),
+  ];
+}
 
 export function actionSummary(result: CheckResult): string {
   const notable = notableDecisions(result);
@@ -134,6 +186,7 @@ export function actionSummary(result: CheckResult): string {
     '',
     `**Result:** ${result.policy.result === 'failed' ? 'FAILED — configured compatibility classification detected' : 'PASSED — configured compatibility gate not violated'}`,
     ...(lines.length ? ['', '### Findings', '', ...lines] : []),
+    ...likelyUsesSummary([result]),
     '',
     DISCLAIMER,
   ].join('\n');
@@ -186,6 +239,11 @@ export function actionSetSummary(set: CheckSetResult): string {
         ]
       : []),
     ...(shown.length ? ['', '### Findings', '', ...shown] : []),
+    ...likelyUsesSummary(
+      set.dependencies.flatMap((item) =>
+        item.status === 'checked' ? [item.result] : [],
+      ),
+    ),
     '',
     DISCLAIMER,
   ].join('\n');
@@ -263,6 +321,7 @@ const redacting = (io: ActionIo): ActionIo => ({
     io.setOutput(name, typeof value === 'string' ? redact(value) : value),
   warning: (message) => io.warning(redact(message)),
   error: (message) => io.error(redact(message)),
+  notice: (message, properties) => io.notice(redact(message), properties),
   setFailed: (message) => io.setFailed(redact(message)),
   writeSummary: (markdown) => io.writeSummary(redact(markdown)),
   setSecret: (value) => io.setSecret(value),
@@ -289,6 +348,7 @@ export type ActionDependencies = {
 async function runCheck(
   io: ActionIo,
   dependencies: ActionDependencies,
+  findUses: boolean,
 ): Promise<string | undefined> {
   try {
     const policyFormat = io.getInput('policy-export').trim();
@@ -373,7 +433,46 @@ async function runCheck(
           : { error: item.error.message }),
       }));
     }
-    for (const [name, value] of Object.entries(outputsFor(set, single)))
+    // Hints after the decisions: where the checked-out code may use a changed
+    // name. Informational only, and a scan problem never fails the check.
+    let likelyUsesCount: number | undefined;
+    if (findUses) {
+      const workspace = (
+        dependencies.env ?? process.env
+      ).GITHUB_WORKSPACE?.trim();
+      if (workspace) {
+        const checked = set.dependencies.flatMap((item) =>
+          item.status === 'checked' ? [item.result] : [],
+        );
+        try {
+          const reports = await scanLikelyUses(workspace, checked);
+          likelyUsesCount = 0;
+          checked.forEach((result, index) => {
+            const report = reports[index];
+            if (!report) return;
+            result.likelyUses = report;
+            likelyUsesCount! += report.changes.reduce(
+              (total, change) => total + change.uses.length,
+              0,
+            );
+          });
+        } catch (error) {
+          likelyUsesCount = 0;
+          io.warning(
+            sanitizeGithub(
+              `Likely-uses scan skipped: ${error instanceof Error ? error.message : 'unknown failure'}`,
+            ),
+          );
+        }
+      }
+    }
+    const outputs: Record<string, string | number> = {
+      ...outputsFor(set, single),
+      ...(likelyUsesCount !== undefined
+        ? { 'likely-uses-count': likelyUsesCount }
+        : {}),
+    };
+    for (const [name, value] of Object.entries(outputs))
       io.setOutput(name, value);
     let annotations = 0;
     for (const item of set.dependencies) {
@@ -396,6 +495,23 @@ async function runCheck(
         const message = annotationMessage(change, label, item.result, decision);
         if (decision.action === 'block') io.error(message);
         else io.warning(message);
+      }
+    }
+    if (likelyUsesCount !== undefined) {
+      let notices = 0;
+      for (const item of set.dependencies) {
+        if (item.status !== 'checked' || !item.result.likelyUses) continue;
+        const label = url ? item.result.inspectionUrl : item.name;
+        for (const { uses } of item.result.likelyUses.changes) {
+          for (const use of uses) {
+            if (notices >= LIKELY_USES_ANNOTATION_LIMIT) break;
+            io.notice(
+              sanitizeGithub(`Likely use of ${use.term} (changed in ${label})`),
+              { file: use.path, startLine: use.line },
+            );
+            notices++;
+          }
+        }
       }
     }
     if (policyFormat) {
@@ -562,12 +678,18 @@ export async function runAction(
 ): Promise<void> {
   const io = redacting(rawIo);
   const failures: string[] = [];
-  let modes: { check: boolean; watch: boolean; issues: boolean };
+  let modes: {
+    check: boolean;
+    watch: boolean;
+    issues: boolean;
+    findUses: boolean;
+  };
   try {
     modes = {
       check: flag(io, 'check', true),
       watch: flag(io, 'watch', false),
       issues: flag(io, 'issues', false),
+      findUses: flag(io, 'find-uses', true),
     };
   } catch (error) {
     io.setFailed(error instanceof Error ? error.message : 'Invalid input.');
@@ -582,7 +704,7 @@ export async function runAction(
     return;
   }
   if (modes.check) {
-    const failure = await runCheck(io, dependencies);
+    const failure = await runCheck(io, dependencies, modes.findUses);
     if (failure) failures.push(failure);
   }
   if (modes.watch || modes.issues)

@@ -27,6 +27,10 @@ inputs:
   on-error:
     description: fail (default) or warn. With warn, a dependency that cannot be reached is reported but does not fail the run.
     required: false
+  find-uses:
+    description: After decisions, search the checked-out repository (GITHUB_WORKSPACE) for likely uses of changed tool, prompt and resource names, as file-and-line hints in the summary and notice annotations. Never line text; informational only; never changes the result.
+    required: false
+    default: 'true'
   policy-export:
     description: Export github or generic policy from this check to .interfacedelta/policy-<format>.json. Requires check true; GitHub output wraps managedSettings and exclusions.
     required: false
@@ -63,6 +67,8 @@ inputs:
     description: Branch to watch or pull decisions for, when not the branch the workflow runs on.
     required: false
 outputs:
+  likely-uses-count:
+    description: Likely-use locations found in the checked-out repository (with find-uses, default true).
   policy-export-path:
     description: Path to the exported policy JSON file.
   watch-status:

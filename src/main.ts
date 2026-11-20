@@ -6,6 +6,7 @@ await runAction({
   setOutput: (name, value) => core.setOutput(name, value),
   warning: (message) => core.warning(message),
   error: (message) => core.error(message),
+  notice: (message, properties) => core.notice(message, properties),
   setFailed: (message) => core.setFailed(message),
   setSecret: (value) => core.setSecret(value),
   writeSummary: async (markdown) => {
