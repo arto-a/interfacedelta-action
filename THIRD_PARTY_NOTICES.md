@@ -1,6 +1,6 @@
 # Third-party notices
 
-InterfaceDelta GitHub Action 0.7.0 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
+InterfaceDelta GitHub Action 0.8.0 bundles these third-party packages and the protocol schema artifacts listed below. This file is generated from the release build; each package's license text follows.
 
 | Package | Version | License |
 | --- | --- | --- |

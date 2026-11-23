@@ -44,6 +44,48 @@ inputs:
     description: Run the compatibility check (default true). Set false for a scheduled job that only opens issues.
     required: false
     default: 'true'
+  agent-check:
+    description: Also run `interfacedelta agent-check` on the MCP client configs in the repository (.mcp.json, .cursor/mcp.json, .vscode/mcp.json, .vscode/settings.json) and upload .interfacedelta/agent-check.sarif to code scanning (needs github-token and security-events write). Reads the stored record only; never calls the configured servers. Set INTERFACEDELTA_AGENT_KEY in the step env to check more than five tools. Off by default.
+    required: false
+    default: 'false'
+  agent-check-fail-on:
+    description: Comma-separated agent-check conditions that fail the run - breaking, changed, stale, payment, money, not_observed. Default reports without failing.
+    required: false
+  citations:
+    description: Check signed tool citations in local instructions. Opt-in; set check false for citations only. Saves SARIF locally for upload with github/codeql-action/upload-sarif. INTERFACEDELTA_AGENT_KEY may be supplied through env.
+    required: false
+    default: 'false'
+  citations-dir:
+    description: Citation instruction directory (default GITHUB_WORKSPACE).
+    required: false
+  citations-include:
+    description: Additional root-relative instruction globs, one per line.
+    required: false
+  citations-keys:
+    description: Trusted published keys JSON relative to citations-dir; defaults to keys.json beside each stored answer.
+    required: false
+  citations-fail-on:
+    description: Comma-separated citation statuses that fail the job (default report only). changed, removed, malformed, signature_invalid, missing, unreachable, not_checked.
+    required: false
+  skills:
+    description: Check local agent instructions against signed stored records and upload SARIF. Opt-in; needs github-token, security-events write and MCP baselines. Set check false for skills only. INTERFACEDELTA_AGENT_KEY may be supplied through env.
+    required: false
+    default: 'false'
+  skills-dir:
+    description: Instruction directory (default GITHUB_WORKSPACE).
+    required: false
+  skills-include:
+    description: Additional root-relative globs, one per line (*, **, ?).
+    required: false
+  skills-mcp-config:
+    description: MCP config file; uses server URLs only, with tool inventories from baselines.
+    required: false
+  skills-since:
+    description: RFC3339 start time (default baseline creation times).
+    required: false
+  skills-fail-on:
+    description: Comma-separated skills reasons that fail the job (default report only). tool_changed_since, breaking_change, tool_removed, input_not_recorded, asks_for_payment, not_observed.
+    required: false
   watch:
     description: Pro and Team. Sync the dependencies file to InterfaceDelta, which then checks it continuously and delivers each decision to its owner. Run on the default branch with actions/checkout fetch-depth 0, or with github-token for ordering.
     required: false
@@ -56,17 +98,25 @@ inputs:
     description: For watch and issues. An InterfaceDelta watch token from Routing → Watch tokens, bound to this repository and branch, from a secret - lockfiles:write for watch, decisions:read and decisions:ack for issues.
     required: false
   api-url:
-    description: InterfaceDelta origin for watch and issues.
+    description: InterfaceDelta origin for watch, issues, agent-check, skills and citations.
     required: false
     default: https://interfacedelta.com
   github-token:
-    description: For issues, and for proving commit order in a shallow checkout when watching. Needs issues write for issues.
+    description: For agent-check and skills SARIF uploads, issues, and proving commit order in a shallow checkout when watching. Needs security-events write for uploads and issues write for issues.
     required: false
     default: ${{ github.token }}
   ref:
     description: Branch to watch or pull decisions for, when not the branch the workflow runs on.
     required: false
 outputs:
+  citations-sarif-path:
+    description: Local citations SARIF path, ready for a separate code scanning upload step.
+  citations-count:
+    description: Tool citations found in instruction files.
+  skills-sarif-path:
+    description: Local path of the skills SARIF file also submitted to GitHub code scanning.
+  skills-mentions-count:
+    description: Stale instruction mentions found by skills mode.
   likely-uses-count:
     description: Likely-use locations found in the checked-out repository (with find-uses, default true).
   policy-export-path:
@@ -77,6 +127,10 @@ outputs:
     description: Issues opened for new decisions.
   decisions-acknowledged:
     description: Decisions acknowledged to InterfaceDelta.
+  agent-check-result:
+    description: passed or failed when agent-check ran, empty when it is off.
+  agent-check-sarif-path:
+    description: Path to the agent-check SARIF file (.interfacedelta/agent-check.sarif), empty when agent-check is off.
   comparison-state:
     description: changed, unchanged, or error when nothing could be checked.
   highest-classification:

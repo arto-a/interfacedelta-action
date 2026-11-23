@@ -1,3 +1,5 @@
+import { runSkillsMode } from './skills';
+import { runCitationsMode } from './citations';
 import { relative, resolve } from 'node:path';
 import {
   baselinePathFor,
@@ -38,8 +40,13 @@ import {
   type LikelyUsesReport,
   type SarifEntry,
   type TokenBinding,
+  runAgentCheck,
+  agentCheckSarif,
+  registerSecret,
+  type AgentCheckOutcome,
 } from 'interfacedelta';
 import { markdown, openDecisionIssues } from './issues';
+import { uploadAgentCheckSarif } from './agent-check-upload';
 
 type Change = CheckResult['comparison']['changes'][number];
 const detailSuffix = (item: Change, result?: CheckResult) => {
@@ -562,6 +569,90 @@ async function runCheck(
   }
 }
 
+const AGENT_CHECK_SARIF_PATH = '.interfacedelta/agent-check.sarif';
+
+function agentCheckSummary(outcome: AgentCheckOutcome): string {
+  const report = outcome.report;
+  const rows = report.servers.map(
+    (server) =>
+      `| ${markdown(server.name, 64)} | ${markdown(server.target, 300)} | ${server.status} | ${server.tools?.length ?? 0} |`,
+  );
+  return [
+    '### InterfaceDelta agent-check',
+    '',
+    `**Result:** ${outcome.exitCode === 1 ? 'FAILED — a --fail-on condition matched' : 'PASSED — no --fail-on condition matched'}`,
+    '',
+    `**Configs:** ${report.configs.map((path) => markdown(path, 300)).join(', ')}`,
+    '',
+    '| Server | Target | Record | Tools |',
+    '| --- | --- | --- | ---: |',
+    ...rows,
+    ...(report.keylessLimit
+      ? [
+          '',
+          `**Keyless limit:** checked the first ${report.keylessLimit.checked} of ${report.keylessLimit.checked + report.keylessLimit.unchecked} tools; set INTERFACEDELTA_AGENT_KEY to check the rest.`,
+        ]
+      : []),
+    '',
+    '_No recorded change is not proof of no change._',
+  ].join('\n');
+}
+
+/**
+ * agent-check: runs `interfacedelta agent-check` on the checked-out MCP
+ * client configs and writes SARIF for code scanning. Off unless requested.
+ */
+async function runAgentCheckMode(
+  io: ActionIo,
+  dependencies: ActionDependencies,
+): Promise<string | undefined> {
+  try {
+    const workspace =
+      (dependencies.env ?? process.env).GITHUB_WORKSPACE?.trim() ||
+      process.cwd();
+    const githubToken = io.getInput('github-token').trim();
+    if (githubToken) {
+      registerSecret(githubToken);
+      io.setSecret(githubToken);
+    }
+    const failOn = io.getInput('agent-check-fail-on').trim() || undefined;
+    // The CLI validates the origin itself (HTTPS; localhost HTTP for tests).
+    const apiUrl = io.getInput('api-url').trim() || DEFAULT_API_URL;
+    const outcome = await runAgentCheck(
+      { path: workspace, ...(failOn ? { failOn } : {}), apiUrl },
+      {
+        env: dependencies.env ?? process.env,
+        fetch: dependencies.fetch ?? fetch,
+      },
+    );
+    const sarif = machineJson(agentCheckSarif(outcome.report, 1000, workspace));
+    await writeAtomic(AGENT_CHECK_SARIF_PATH, sarif, true);
+    io.setOutput('agent-check-sarif-path', AGENT_CHECK_SARIF_PATH);
+    await uploadAgentCheckSarif(
+      sarif,
+      workspace,
+      dependencies.env ?? process.env,
+      githubToken,
+      dependencies.fetch ?? fetch,
+    );
+    await io.writeSummary(`\n${agentCheckSummary(outcome)}\n`);
+    io.setOutput(
+      'agent-check-result',
+      outcome.exitCode === 1 ? 'failed' : 'passed',
+    );
+    return outcome.exitCode === 1
+      ? 'InterfaceDelta agent-check gate failed.'
+      : undefined;
+  } catch (error) {
+    io.setOutput('agent-check-result', 'failed');
+    return sanitizeGithub(
+      error instanceof Error
+        ? error.message
+        : 'InterfaceDelta agent-check failed.',
+    );
+  }
+}
+
 const flag = (io: ActionIo, name: string, fallback: boolean) => {
   const value = io.getInput(name).trim().toLowerCase();
   if (!value) return fallback;
@@ -683,13 +774,19 @@ export async function runAction(
     watch: boolean;
     issues: boolean;
     findUses: boolean;
+    agentCheck: boolean;
+    skills: boolean;
+    citations: boolean;
   };
   try {
     modes = {
+      skills: flag(io, 'skills', false),
+      citations: flag(io, 'citations', false),
       check: flag(io, 'check', true),
       watch: flag(io, 'watch', false),
       issues: flag(io, 'issues', false),
       findUses: flag(io, 'find-uses', true),
+      agentCheck: flag(io, 'agent-check', false),
     };
   } catch (error) {
     io.setFailed(error instanceof Error ? error.message : 'Invalid input.');
@@ -699,13 +796,50 @@ export async function runAction(
     io.setFailed('Input "policy-export" requires check: true.');
     return;
   }
-  if (!modes.check && !modes.watch && !modes.issues) {
-    io.setFailed('Nothing to do: "check", "watch" and "issues" are all false.');
+  if (
+    !modes.check &&
+    !modes.watch &&
+    !modes.issues &&
+    !modes.agentCheck &&
+    !modes.skills &&
+    !modes.citations
+  ) {
+    io.setFailed(
+      'Nothing to do: "check", "watch", "issues", "agent-check", "skills" and "citations" are all false.',
+    );
     return;
   }
   if (modes.check) {
     const failure = await runCheck(io, dependencies, modes.findUses);
     if (failure) failures.push(failure);
+  }
+  if (modes.agentCheck) {
+    const failure = await runAgentCheckMode(io, dependencies);
+    if (failure) failures.push(failure);
+  }
+  if (modes.skills) {
+    try {
+      const failure = await runSkillsMode(io, dependencies);
+      if (failure) failures.push(failure);
+    } catch (error) {
+      failures.push(
+        sanitizeGithub(
+          error instanceof Error ? error.message : 'Skills check failed.',
+        ),
+      );
+    }
+  }
+  if (modes.citations) {
+    try {
+      const failure = await runCitationsMode(io, dependencies);
+      if (failure) failures.push(failure);
+    } catch (error) {
+      failures.push(
+        sanitizeGithub(
+          error instanceof Error ? error.message : 'Citations check failed.',
+        ),
+      );
+    }
   }
   if (modes.watch || modes.issues)
     try {

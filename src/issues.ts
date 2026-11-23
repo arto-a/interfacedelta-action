@@ -46,6 +46,7 @@ type Card = {
   marker: string;
   decision: string;
   headline?: unknown;
+  explanation?: unknown;
   repository?: unknown;
   ref?: unknown;
   commitSha?: unknown;
@@ -207,6 +208,26 @@ const consequence = (card: Card) => {
  * configured api-url, never from the card.
  */
 export function issueBody(card: Card, decisionUrl?: string) {
+  const explanation = card.explanation as
+    | {
+        source?: unknown;
+        state?: unknown;
+        headline?: unknown;
+        explanation?: unknown;
+      }
+    | undefined;
+  const lead =
+    explanation &&
+    (explanation.state === 'completed' || explanation.source === 'facts') &&
+    typeof explanation.headline === 'string'
+      ? [
+          `◇ ${explanation.source === 'facts' ? 'Summary from the recorded facts' : 'AI explanation · beta'}`,
+          markdown(explanation.headline, 140),
+          markdown(explanation.explanation, 400),
+          '',
+        ]
+      : [];
+
   const changes = new Map(
     (Array.isArray(card.changes) ? card.changes : []).map((change) => [
       (change as { id?: unknown }).id,
@@ -240,6 +261,7 @@ export function issueBody(card: Card, decisionUrl?: string) {
     .filter((id): id is string => typeof id === 'string')
     .map((id) => `\`${markdown(id, 36)}\``);
   const lines = [
+    ...lead,
     `**${markdown(card.decision.toUpperCase(), 10)}** — ${markdown(typeof card.dependency === 'string' ? `${card.dependency}: ${headlineOf(card)}` : headlineOf(card), 300)}`,
     '',
     consequence(card),
